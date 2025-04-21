@@ -1,5 +1,4 @@
 from functions import lire_reseau_flot, afficher_tableau, construire_graphe_flot, afficher_graphe_flot
-import numpy as np
 
 
 def main():

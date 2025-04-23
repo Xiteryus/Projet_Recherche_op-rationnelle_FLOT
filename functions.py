@@ -39,6 +39,8 @@ def lire_reseau_flot(filename):
         capacites.append(row)
     capacites = np.array(capacites)
 
+    flot = construire_matrice_flot(n)
+
     couts = None
     if len(lignes) > n + 1:
         try:
@@ -55,7 +57,7 @@ def lire_reseau_flot(filename):
         except Exception as e:
             couts = None
 
-    return {"n": n, "capacites": capacites, "couts": couts}
+    return {"n": n, "capacites": capacites, "couts": couts, "flot": flot}
 
 
 def mapping_noeuds(n):
@@ -167,4 +169,45 @@ def afficher_graphe_flot(G):
     plt.axis("off")
     plt.show(block=True)
 
+
+def construire_matrice_flot(n):
+    """
+    :param n:
+    :return: [[0, 0, 0, ...], [0, 0, 0, ...], [0, 0, 0, ...], [0, 0, 0, ...], ...]
+    """
+    return [[0] * n] * n
+
+
+def maj_matrice_flot(flot, maj):
+    """
+    Addition des deux matrices flot et maj pour renvoyer une matrice de flot à jour.
+    """
+    new_flot = flot
+    for i in range(len(new_flot)):
+        for j in range(len(new_flot[i])):
+            new_flot[i][j] += maj[i][j]
+    return new_flot
+
+
+def construire_reseau_residuel(capacites, flot):
+    """
+    Construction de la matrice de réseau résiduel.
+    :param capacites:
+    :param flot:
+    :return: [[[1, 5], [2, 3], [0, 5], ...], [[8, 11], [0, 9], [4, 6], ...], [[1, 2], [0, 3], [5, 7], ...], ...]
+    Le premier chiffre correspond à ce qui peut encore être envoyé depuis le sommet correspondant à la ligne vers le sommet correspondant à la colonne.
+    Le deuxième correpond au flot déjà présent entre ces deux sommets et qu'il faudrait envoyer dans l'autre sens si l'on souhaitait annuler le débit.
+    """
+    reseau_residuel = []
+    for i in range(len(capacites)):
+        sommet = []
+        for j in range(len(capacites[i])):
+            sommet.append([capacites[i][j] - flot[i][j], flot[i][j]])
+        reseau_residuel.append(sommet)
+    return reseau_residuel
+
+
+def maximiser_flot(reseau_residuel):
+    maximise = False
+    while not maximise:
 

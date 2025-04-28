@@ -1,16 +1,7 @@
 from functions import *
 
 def main():
-    reseau = None
-    # Lecture du fichier jusqu'à succès
-    while reseau is None:
-        filename = input("Entrez le nom du fichier du réseau de flot (ex. : reseau.txt) : ")
-        try:
-            reseau = lire_reseau_flot(filename)
-            print(f"Fichier '{filename}' chargé avec succès.")
-        except Exception as e:
-            print("Erreur lors de la lecture du fichier :", e)
-
+    reseau = choix_fichier()
     choix = 0
     while choix != 8:
         print("\nMenu :")
@@ -30,13 +21,7 @@ def main():
         choix = int(saisie)
 
         if choix == 1:
-            filename = input("Entrez le nom du fichier du réseau de flot (ex. : reseau.txt) : ")
-            try:
-                reseau = lire_reseau_flot(filename)
-                print(f"Fichier '{filename}' chargé avec succès.")
-            except Exception as e:
-                print("Erreur lors de la lecture du fichier :", e)
-
+            reseau = choix_fichier()
         elif choix == 2:
             # On peut réutiliser afficher_tableau si nécessaire :
             from functions import afficher_tableau

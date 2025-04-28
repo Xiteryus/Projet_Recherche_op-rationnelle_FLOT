@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 from tabulate import tabulate
+from random import randint
 
 def lire_reseau_flot(filename):
     """
@@ -296,3 +297,63 @@ def min_cost_flow(reseau, target):
     print(f"\nFlot obtenu = {total_flow}   Coût total = {total_cost}\n")
     afficher_tableau_flot(flow, caps)
     return total_flow, total_cost, flow
+
+
+def generer_cout_aleatoire(n):
+    cout = []
+    for i in range(n):
+        sommet = []
+        for j in range(n):
+            sommet.append(randint(0, 10))
+        cout.append(sommet)
+    return cout
+
+
+def generer_flot_aleatoire(n):
+    flot = []
+    for i in range(n):
+        sommet = []
+        for j in range(n):
+            sommet.append(randint(0, 200))
+        flot.append(sommet)
+    return flot
+
+
+def creer_reseau_flot(n, choixCout):
+    capacites = generer_flot_aleatoire(n)
+    capacites = np.array(capacites)
+    if choixCout == "Y" or choixCout == "y":
+        couts = generer_cout_aleatoire(n)
+        couts = np.array(couts)
+    else:
+        couts = None
+    return {"n": n, "capacites": capacites, "couts": couts}
+
+def choix_fichier():
+    reseau = None
+    randomness = None
+    # Boucle de choix d'un fichier existant ou random
+    while randomness is None:
+        randomness = input("Choix d'un fichier déjà existant [Y/N] : ")
+        if randomness == 'Y' or randomness == 'y':
+            # Lecture du fichier jusqu'à succès
+            while reseau is None:
+                filename = input("Entrez le nom du fichier de la table du réseau de flot (ex. : reseau.txt) : ")
+                try:
+                    reseau = lire_reseau_flot(filename)
+                    print(f"Fichier '{filename}' chargé avec succès.")
+                except Exception as e:
+                    print("Erreur lors de la lecture du fichier :", e)
+                    reseau = None
+        elif randomness == 'N' or randomness == 'n':
+            nbSommets = int(input("Choisissez le nombre de sommets : "))
+            choixCout = input("Associer des coûts à chaque arrête ? [Y/N] : ")
+            if choixCout not in ["Y", "y", "N", "n"]:
+                print("Entrez 'Y' ou 'N' !")
+                reseau = None
+            else:
+                reseau = creer_reseau_flot(nbSommets, choixCout)
+        else:
+            print("Entrez 'Y' ou 'N' !")
+            randomness = None
+    return reseau

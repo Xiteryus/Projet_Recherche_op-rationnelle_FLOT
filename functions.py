@@ -3,211 +3,296 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from tabulate import tabulate
 
-
 def lire_reseau_flot(filename):
     """
     Lit un fichier texte contenant la table d'un réseau de flot.
 
     Format attendu :
-      - La première ligne contient un entier n (nombre de sommets).
-      - Ensuite, n lignes, chacune avec n entiers séparés par des espaces, représentant la matrice des capacités.
-      - (Optionnel) Si le fichier contient ensuite un autre entier n et n lignes avec n entiers, alors cette seconde matrice sera
-        traitée comme la matrice des coûts.
-
-    Exemple pour un flot max :
-      5
-      0 9 5 7 0
-      0 0 6 0 6
-      0 0 0 0 7
-      0 0 0 0 2
-      0 0 0 0 0
-
-    Retourne un dictionnaire contenant :
-      - 'n': nombre de sommets
-      - 'capacites': matrice des capacités (numpy array n x n)
-      - 'couts': matrice des coûts (numpy array n x n) si présente, sinon None.
+      - Première ligne : entier n (nombre de sommets).
+      - Lignes 2 à n+1 : matrice n×n des capacités.
+      - Lignes n+2 à 2n+1 (optionnel) : matrice n×n des coûts.
     """
-    with open(filename, 'r') as file:
-        lignes = [l.strip() for l in file if l.strip()]
-
+    with open(filename, 'r') as f:
+        lignes = [l.strip() for l in f if l.strip()]
+    if len(lignes) < 2:
+        raise ValueError(f"Fichier '{filename}' trop court.")
     n = int(lignes[0])
-    capacites = []
-    for i in range(1, n + 1):
+    if len(lignes) < 1 + n:
+        raise ValueError(f"Il manque des lignes pour la matrice des capacités (n={n}).")
+    # Capacités
+    caps = []
+    for i in range(1, 1+n):
         row = list(map(int, lignes[i].split()))
         if len(row) != n:
-            raise ValueError("La matrice des capacités doit être de taille n x n.")
-        capacites.append(row)
-    capacites = np.array(capacites)
-
-    flot = construire_matrice_flot(n)
-
+            raise ValueError(f"Ligne {i+1} : attendu {n} colonnes, trouvé {len(row)}.")
+        caps.append(row)
+    capacites = np.array(caps, dtype=int)
+    # Coûts (optionnel)
     couts = None
-    if len(lignes) > n + 1:
-        try:
-            n2 = int(lignes[n + 1])
-            if n2 != n:
-                raise ValueError("La taille de la matrice des coûts doit être égale à n.")
-            couts = []
-            for i in range(n + 2, n + 2 + n):
-                row = list(map(int, lignes[i].split()))
-                if len(row) != n:
-                    raise ValueError("La matrice des coûts doit être de taille n x n.")
-                couts.append(row)
-            couts = np.array(couts)
-        except Exception as e:
-            couts = None
-
-    return {"n": n, "capacites": capacites, "couts": couts, "flot": flot}
+    start = 1 + n
+    if len(lignes) >= start + n:
+        costs = []
+        for i in range(start, start + n):
+            row = list(map(int, lignes[i].split()))
+            if len(row) != n:
+                raise ValueError(f"Ligne {i+1} : attendu {n} colonnes pour les coûts.")
+            costs.append(row)
+        couts = np.array(costs, dtype=int)
+    return {"n": n, "capacites": capacites, "couts": couts}
 
 
 def mapping_noeuds(n):
     """
-    Crée un dictionnaire de mapping des indices vers des étiquettes :
-      - 0  -> "s" (source)
-      - n-1 -> "t" (puits)
-      - Pour 1 <= i <= n-2, i -> lettre a, b, c, …
+    index -> label : 0->'s', n-1->'t', 1..n-2 -> 'a','b',...
     """
-    mapping = {}
-    mapping[0] = "s"
-    mapping[n - 1] = "t"
-    for i in range(1, n - 1):
-        mapping[i] = chr(ord('a') + (i - 1))
-    return mapping
+    m = {0: "s", n-1: "t"}
+    for i in range(1, n-1):
+        m[i] = chr(ord('a') + i - 1)
+    return m
 
 
 def afficher_tableau(mat, titre="Tableau", fmt="grid"):
     """
-    Affiche la matrice (numpy array) de manière soignée à l'aide de tabulate
-    en utilisant des étiquettes de nœuds (s, a, b, …, t) pour les lignes et colonnes.
+    Affiche une matrice numpy square avec étiquettes s, a, b, ..., t.
     """
     n = mat.shape[0]
-    mapping = mapping_noeuds(n)
-    headers = [mapping[i] for i in range(n)]
-    index_labels = [mapping[i] for i in range(n)]
-    tableau = []
-    for i in range(n):
-        ligne = []
-        for j in range(n):
-            val = mat[i][j]
-            if val == float('inf'):
-                ligne.append("∞")
-            else:
-                ligne.append(str(val))
-        tableau.append(ligne)
+    labels = [mapping_noeuds(n)[i] for i in range(n)]
+    table = [[str(mat[i][j]) if mat[i][j] != float('inf') else "∞"
+              for j in range(n)] for i in range(n)]
     print(titre)
-    print(tabulate(tableau, headers=headers, showindex=index_labels, tablefmt=fmt))
+    print(tabulate(table, headers=labels, showindex=labels, tablefmt=fmt))
+
+
+def afficher_tableau_flot(flux, capacites):
+    """
+    Affiche le flot sous la forme 'f/c' pour chaque arête.
+    """
+    n = flux.shape[0]
+    labels = [mapping_noeuds(n)[i] for i in range(n)]
+    table = []
+    for i in range(n):
+        row = []
+        for j in range(n):
+            cap = capacites[i][j]
+            f   = flux[i][j]
+            if cap == 0:
+                row.append("0")
+            else:
+                row.append(f"{f}/{cap}")
+        table.append(row)
+    print(tabulate(table, headers=labels, showindex=labels, tablefmt="grid"))
 
 
 def construire_graphe_flot(reseau):
     """
-    Construit et retourne un graphe orienté (networkx.DiGraph) à partir du dictionnaire 'reseau'.
-
-    Les sommets sont étiquetés avec des lettres :
-      - Le sommet 0 est la source, étiqueté "s"
-      - Le sommet n-1 est le puits, étiqueté "t"
-      - Les sommets intermédiaires reçoivent les lettres "a", "b", "c", etc.
-
-    Un arc est créé si la capacité est strictement positive.
-    L'étiquette de chaque arc affiche la capacité et, le cas échéant, le coût.
+    Retourne un DiGraph où chaque arête a attributes:
+      - capacity
+      - cost (None si absent)
+      - label "(cap ; cost)" ou "cap"
     """
-    n = reseau["n"]
-    capacites = reseau["capacites"]
-    couts = reseau["couts"]
-
+    n     = reseau["n"]
+    caps  = reseau["capacites"]
+    costs = reseau["couts"]
     mapping = mapping_noeuds(n)
 
     G = nx.DiGraph()
     for i in range(n):
         G.add_node(mapping[i])
-
     for i in range(n):
         for j in range(n):
-            if capacites[i][j] > 0:
-                etiquette = f"{capacites[i][j]}"
-                if couts is not None:
-                    etiquette += f", cout={couts[i][j]}"
-                G.add_edge(mapping[i], mapping[j], label=etiquette, capacity=capacites[i][j])
+            cap = caps[i][j]
+            if cap > 0:
+                cost = costs[i][j] if costs is not None else None
+                label = f"({cap} ; {cost})" if cost is not None else f"{cap}"
+                G.add_edge(mapping[i], mapping[j],
+                           capacity=cap, cost=cost, label=label)
     return G
 
 
-def afficher_graphe_flot(G):
+def afficher_graphe_flot(G, flow_matrix=None, mode=None):
     """
-    Affiche graphiquement le graphe du réseau de flot.
-
-    Caractéristiques :
-      - Positionnement des nœuds en cercle.
-      - La source ("s") est affichée en vert et le puits ("t") en rouge, les autres en bleu clair.
-      - Les arêtes sont tracées en ligne droite avec des flèches indiquant le sens.
-      - Les labels des arêtes (affichant capacité et coût) sont affichés sur un fond blanc semi-transparent.
+    Affichage circulaire, nœuds colorés, arêtes droites, labels sur fond blanc.
+    Si flow_matrix+mode donné, colore en rouge (max) ou bleu (min) les arêtes avec flux>0.
     """
     n = G.number_of_nodes()
+    idx2lbl = mapping_noeuds(n)
+    lbl2idx = {lbl: idx for idx,lbl in idx2lbl.items()}
 
-    # Définir la couleur en fonction de l'étiquette
-    couleurs = []
-    for node in G.nodes():
-        if node == "s":
-            couleurs.append("green")
-        elif node == "t":
-            couleurs.append("red")
-        else:
-            couleurs.append("lightblue")
+    # couleurs nœuds
+    node_colors = []
+    for u in G.nodes():
+        if u == "s":   node_colors.append("green")
+        elif u == "t": node_colors.append("red")
+        else:          node_colors.append("lightblue")
 
     pos = nx.circular_layout(G)
-
-    plt.figure(figsize=(10, 6))
-    nx.draw_networkx_nodes(G, pos, node_color=couleurs, node_size=2000, edgecolors="black")
+    plt.figure(figsize=(10,6))
+    nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=2000, edgecolors="black")
     nx.draw_networkx_labels(G, pos, font_size=12, font_weight="bold")
 
-    nx.draw_networkx_edges(G, pos, arrows=True, arrowstyle="-|>", arrowsize=20,
-                           connectionstyle="arc3,rad=0.0", edge_color="black")
+    # couleurs arêtes
+    edge_colors = []
+    for u,v in G.edges():
+        if flow_matrix is not None and mode in ("max","min"):
+            i,j = lbl2idx[u], lbl2idx[v]
+            edge_colors.append("red" if mode=="max" and flow_matrix[i][j]>0
+                               else "blue" if mode=="min" and flow_matrix[i][j]>0
+                               else "black")
+        else:
+            edge_colors.append("black")
 
-    edge_labels = nx.get_edge_attributes(G, "label")
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color="blue", font_size=10,
-                                 bbox=dict(facecolor="white", edgecolor="none", alpha=0.7))
+    nx.draw_networkx_edges(
+        G, pos,
+        arrows=True, arrowstyle='-|>', arrowsize=20,
+        connectionstyle='arc3,rad=0.0',
+        edge_color=edge_colors
+    )
 
-    plt.title("Représentation graphique du réseau de flot")
+    # labels arêtes
+    edge_labels = {(u,v): data["label"] for u,v,data in G.edges(data=True)}
+    nx.draw_networkx_edge_labels(
+        G, pos,
+        edge_labels=edge_labels,
+        font_color="blue", font_size=10,
+        bbox=dict(facecolor="white", edgecolor="none", alpha=0.7)
+    )
+
+    title = "Représentation graphique du réseau de flot"
+    if mode=="max":
+        title += " — Flot maximal (rouge)"
+    elif mode=="min":
+        title += " — Flot minimal (bleu)"
+    plt.title(title)
     plt.axis("off")
     plt.show(block=True)
 
 
-def construire_matrice_flot(n):
+def ford_fulkerson(reseau):
     """
-    :param n:
-    :return: [[0, 0, 0, ...], [0, 0, 0, ...], [0, 0, 0, ...], [0, 0, 0, ...], ...]
+    Edmonds–Karp + affichage tabulate du flot f/c.
+    Renvoie (max_flow, flow_matrix).
     """
-    return [[0] * n] * n
+    n = reseau["n"]
+    caps = reseau["capacites"]
+    residual = caps.copy()
+    flow = np.zeros((n,n), dtype=int)
+    s, t = 0, n-1
+
+    def bfs(parent):
+        visited = [False]*n
+        q = [s]; visited[s]=True
+        parent[:] = [-1]*n
+        while q:
+            u = q.pop(0)
+            for v in range(n):
+                if not visited[v] and residual[u][v]>0:
+                    visited[v]=True; parent[v]=u; q.append(v)
+                    if v==t: return True
+        return False
+
+    parent = [-1]*n
+    max_flow = 0
+    while bfs(parent):
+        cf = float('inf'); v=t
+        while v!=s:
+            u=parent[v]; cf=min(cf, residual[u][v]); v=u
+        max_flow += cf
+        v=t
+        while v!=s:
+            u=parent[v]
+            flow[u][v]+=cf; flow[v][u]-=cf
+            residual[u][v]-=cf; residual[v][u]+=cf
+            v=u
+
+    print(f"\nFlot maximal = {max_flow}\n")
+    afficher_tableau_flot(flow, caps)
+    return max_flow, flow
 
 
-def maj_matrice_flot(flot, maj):
+def push_relabel(reseau):
     """
-    Addition des deux matrices flot et maj pour renvoyer une matrice de flot à jour.
+    Push–Relabel + affichage tabulate du flot.
+    Renvoie (max_flow, flow_matrix).
     """
-    new_flot = flot
-    for i in range(len(new_flot)):
-        for j in range(len(new_flot[i])):
-            new_flot[i][j] += maj[i][j]
-    return new_flot
+    n = reseau["n"]
+    caps = reseau["capacites"]
+    residual = caps.copy()
+    flow = np.zeros((n,n), dtype=int)
+    s, t = 0, n-1
+    height = [0]*n; excess=[0]*n
+
+    height[s]=n
+    for v in range(n):
+        if caps[s][v]>0:
+            flow[s][v]=caps[s][v]; flow[v][s]=-caps[s][v]
+            excess[v]=caps[s][v]; excess[s]-=caps[s][v]
+            residual[s][v]=0; residual[v][s]=caps[s][v]
+
+    def push(u,v):
+        delta=min(excess[u], residual[u][v])
+        flow[u][v]+=delta; flow[v][u]-=delta
+        residual[u][v]-=delta; residual[v][u]+=delta
+        excess[u]-=delta; excess[v]+=delta
+
+    def relabel(u):
+        height[u]=1+min(height[v] for v in range(n) if residual[u][v]>0)
+
+    active=[u for u in range(n) if u not in (s,t) and excess[u]>0]
+    while active:
+        u=active[0]; pushed=False
+        for v in range(n):
+            if residual[u][v]>0 and height[u]==height[v]+1:
+                push(u,v); pushed=True
+                if v not in (s,t) and excess[v]>0 and v not in active:
+                    active.append(v)
+                if excess[u]==0: break
+        if not pushed: relabel(u)
+        if excess[u]==0: active.pop(0)
+
+    mf = sum(flow[s])
+    print(f"\nFlot maximal = {mf}\n")
+    afficher_tableau_flot(flow, caps)
+    return mf, flow
 
 
-def construire_reseau_residuel(capacites, flot):
+def min_cost_flow(reseau, target):
     """
-    Construction de la matrice de réseau résiduel.
-    :param capacites:
-    :param flot:
-    :return: [[[1, 5], [2, 3], [0, 5], ...], [[8, 11], [0, 9], [4, 6], ...], [[1, 2], [0, 3], [5, 7], ...], ...]
-    Le premier chiffre correspond à ce qui peut encore être envoyé depuis le sommet correspondant à la ligne vers le sommet correspondant à la colonne.
-    Le deuxième correpond au flot déjà présent entre ces deux sommets et qu'il faudrait envoyer dans l'autre sens si l'on souhaitait annuler le débit.
+    Min cost flow via Bellman-Ford + affichage tabulate.
+    Renvoie (flow_value, cost_total, flow_matrix).
     """
-    reseau_residuel = []
-    for i in range(len(capacites)):
-        sommet = []
-        for j in range(len(capacites[i])):
-            sommet.append([capacites[i][j] - flot[i][j], flot[i][j]])
-        reseau_residuel.append(sommet)
-    return reseau_residuel
+    n = reseau["n"]
+    caps = reseau["capacites"]
+    costs = reseau["couts"]
+    if costs is None:
+        raise ValueError("Pas de matrice de coûts")
+    residual = caps.copy()
+    flow = np.zeros((n,n), dtype=int)
+    s,t = 0,n-1
+    total_flow=0; total_cost=0
 
+    while total_flow<target:
+        dist=[float('inf')]*n; parent=[-1]*n; dist[s]=0
+        for _ in range(n-1):
+            upd=False
+            for u in range(n):
+                for v in range(n):
+                    if residual[u][v]>0 and dist[u]+costs[u][v]<dist[v]:
+                        dist[v]=dist[u]+costs[u][v]; parent[v]=u; upd=True
+            if not upd: break
+        if dist[t]==float('inf'): break
 
-def maximiser_flot(reseau_residuel):
-    maximise = False
-    while not maximise:
+        inc = target-total_flow
+        v=t
+        while v!=s:
+            u=parent[v]; inc=min(inc, residual[u][v]); v=u
+        total_flow+=inc; total_cost+=inc*dist[t]
+        v=t
+        while v!=s:
+            u=parent[v]
+            flow[u][v]+=inc; flow[v][u]-=inc
+            residual[u][v]-=inc; residual[v][u]+=inc
+            v=u
 
+    print(f"\nFlot obtenu = {total_flow}   Coût total = {total_cost}\n")
+    afficher_tableau_flot(flow, caps)
+    return total_flow, total_cost, flow

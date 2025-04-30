@@ -167,6 +167,9 @@ def afficher_graphe_flot(G, flow_matrix=None, mode=None):
     plt.axis("off")
     plt.show(block=True)
 
+#-------------------------------------------------------------------------------------------------------------------------------
+#FLOT MAX
+
 
 def ford_fulkerson(reseau):
     """
@@ -209,6 +212,81 @@ def ford_fulkerson(reseau):
     afficher_tableau_flot(flow, caps)
     return max_flow, flow
 
+
+def Iteration_ford_fulkerson(reseau):
+    """
+    Version affichant les Iterations du Ford-Fulkerson & (Edmonds-Karp)
+    Renvoie (max_flow, flow_matrix).
+    """
+    n = reseau["n"]
+    caps = reseau["capacites"]
+    residual = caps.copy()
+    s, t = 0, n - 1
+    flow = np.zeros((n, n), dtype=int)
+    iteration = 1
+    labels = mapping_noeuds(n)
+
+    def bfs_trace(parent):
+        visited = [False] * n
+        q = [s]
+        visited[s] = True
+        parent[:] = [-1] * n
+        parcours = [labels[s]]
+        while q:
+            u = q.pop(0)
+            for v in range(n):
+                if not visited[v] and residual[u][v] > 0:
+                    visited[v] = True
+                    parent[v] = u
+                    q.append(v)
+                    parcours.append(labels[v])
+                    if v == t:
+                        return True, parcours
+        return False, parcours
+    parent = [-1] * n
+    max_flow = 0
+
+    while True:
+        found, parcours = bfs_trace(parent)
+        if not found:
+            break
+
+        cf = float("inf")
+        v = t
+        path = []
+        while v != s:
+            u = parent[v]
+            cf = min(cf, residual[u][v])
+            path.append(v)
+            v = u
+        path.append(s)
+        path = path[::-1]
+
+        print(f"\nItération : {iteration} :")
+        print("Parcours en largeur :")
+        for i in range(n):
+            if parent[i] != -1 and i != s:
+                print(f"Π({labels[i]}) = {labels[parent[i]]}; ", end="")
+        print()
+        print(f"Chaine améliorante : {''.join([labels[i] for i in path])} de flot {cf}.")
+
+        v = t
+        while v != s:
+            u = parent[v]
+            flow[u][v] += cf
+            flow[v][u] -= cf
+            residual[u][v] -= cf
+            residual[v][u] += cf
+            v = u
+
+        print("Modifications sur le graphe résiduel :")
+        afficher_tableau_flot(flow, caps)
+
+        max_flow += cf
+        iteration += 1
+
+    print(f"\n Flot maximal = {max_flow}")
+    return max_flow, flow
 
 def push_relabel(reseau):
     """
@@ -255,6 +333,9 @@ def push_relabel(reseau):
     afficher_tableau_flot(flow, caps)
     return mf, flow
 
+#-------------------------------------------------------------------------------------------------------------------------------
+#FLOT MIN
+
 
 def min_cost_flow(reseau, target):
     """
@@ -297,6 +378,100 @@ def min_cost_flow(reseau, target):
     print(f"\nFlot obtenu = {total_flow}   Coût total = {total_cost}\n")
     afficher_tableau_flot(flow, caps)
     return total_flow, total_cost, flow
+
+def Iteration_min_cost_flow(reseau, target):
+    """
+    Version affichant les Iterations du Min Cost Flow & Affichage tabulate.
+    Renvoie (flow_value, cost_total, flow_matrix).
+    """
+    n = reseau["n"]
+    caps = reseau["capacites"]
+    costs = reseau["couts"]
+    if costs is None:
+        raise ValueError("Pas de matrice de coûts")
+    residual = caps.copy()
+    flow = np.zeros((n,n), dtype=int)
+    s, t = 0, n-1
+    total_flow = 0 ;total_cost = 0
+    iteration = 1
+    labels = [mapping_noeuds(n)[i] for i in range(n)]
+
+    while total_flow < target:
+        print(f"\nItération {iteration} :")
+        dist = [float('inf')] * n
+        parent = [-1] * n
+        dist[s] = 0
+
+
+        history = [["0" if i == s else "∞" for i in range(n)]]
+
+        for step in range(1, n):
+            updated = False
+            new_dist = dist[:]
+            for u in range(n):
+                for v in range(n):
+                    if residual[u][v] > 0 and dist[u] + costs[u][v] < new_dist[v]:
+                        new_dist[v] = dist[u] + costs[u][v]
+                        parent[v] = u
+                        updated = True
+            dist = new_dist[:]
+            history.append([str(d) if d < float('inf') else "∞" for d in dist])
+            if not updated:
+                break
+        headers = ["k"] + reseau.get("noms", [f"s{i}" for i in range(n)])
+        rows = [[i] + history[i] for i in range(len(history))]
+        print("\nTable de Bellman-Ford :")
+        print(tabulate(rows, headers=headers, tablefmt="grid"))
+        if dist[t] == float('inf'):
+            print("Plus de chaîne améliorante trouvée.")
+            break
+        print("\n")
+        # Retrouver et afficher le chemin améliorant
+        chemin = []
+        v = t
+        while v != s:
+            chemin.append(v)
+            v = parent[v]
+        chemin.append(s)
+        chemin.reverse()
+        inc = target - total_flow
+        v = t
+        while v != s:
+            u = parent[v]
+            inc = min(inc, residual[u][v])
+            v = u
+        print("Chaîne améliorante :", ' → '.join(mapping_noeuds(n)[i] for i in chemin))
+        print(f"Flot de cette iteration sur cette chaîne : {inc}")
+        total_flow += inc
+        total_cost += inc * dist[t]
+        if total_flow < target:
+            print(f"Le flot total est : {total_flow} < {target} , donc on continue")
+        print("Modifications sur le graphe résiduel :")
+        v = t
+        while v != s:
+            u = parent[v]
+            flow[u][v] += inc
+            flow[v][u] -= inc
+            residual[u][v] -= inc
+            residual[v][u] += inc
+            v = u
+
+        table = []
+        for i in range(n):
+            row = []
+            for j in range(n):
+                row.append(str(residual[i][j]))
+            table.append(row)
+        print(tabulate(table, headers=labels, showindex=labels, tablefmt="grid"))
+        iteration += 1
+
+    print(f"\n Flot obtenu = {total_flow}   Coût total = {total_cost}")
+    afficher_tableau_flot(flow, caps)
+    return total_flow, total_cost, flow
+
+
+#-------------------------------------------------------------------------------------------------------------------------------
+#COMPLEXITE
 
 
 def generer_cout_aleatoire(n):

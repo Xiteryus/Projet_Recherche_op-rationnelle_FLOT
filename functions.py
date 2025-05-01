@@ -333,6 +333,72 @@ def push_relabel(reseau):
     afficher_tableau_flot(flow, caps)
     return mf, flow
 
+def Iteration_push_relabel(reseau):
+    """
+    Version affichant les Iterations de psuh_relabel
+    Renvoie (max_flow, flow_matrix).
+    """
+    n = reseau["n"]
+    caps = reseau["capacites"]
+    residual = caps.copy()
+    flow = np.zeros((n, n), dtype=int)
+    s, t = 0, n - 1
+    height = [0] * n
+    excess = [0] * n
+
+    height[s] = n
+    for v in range(n):
+        if caps[s][v] > 0:
+            flow[s][v] = caps[s][v] ;flow[v][s] = -caps[s][v]
+            excess[v] = caps[s][v] ;excess[s] -= caps[s][v]
+            residual[s][v] = 0 ;residual[v][s] = caps[s][v]
+    def push(u, v):
+        delta = min(excess[u], residual[u][v])
+        flow[u][v] += delta ;flow[v][u] -= delta
+        residual[u][v] -= delta ;residual[v][u] += delta
+        excess[u] -= delta ; excess[v] += delta
+        print(f"On pousse le flot du sommet {u} vers le sommet {v} ")
+        print(f"Quantité de flot poussée : {delta}")
+
+    def relabel(u):
+        min_height = min(height[v] for v in range(n) if residual[u][v] > 0)
+        height[u] = 1 + min_height
+        print(f"Reetiquetage du sommet {u}")
+        print(f"Nouvelle hauteur : {height[u]}")
+
+    def print_state(step):
+        print(f"\nItération : {step}")
+        headers = ["Noeud", "Hauteur", "Excès"]
+        table = [[i, height[i], excess[i]] for i in range(n)]
+        print(tabulate(table, headers=headers, tablefmt="grid"))
+
+        print("\nFlot actuel :")
+        headers = [f"{i}" for i in range(n)]
+        print(tabulate(flow, headers=headers, showindex=True, tablefmt="grid"))
+
+    active = [u for u in range(n) if u not in (s, t) and excess[u] > 0]
+    step = 0
+    print_state(step)
+
+    while active:
+        u = active[0] ;pushed = False
+        for v in range(n):
+            if residual[u][v] > 0 and height[u] == height[v] + 1:
+                push(u, v) ;pushed = True
+                if v not in (s, t) and excess[v] > 0 and v not in active:
+                    active.append(v)
+                if excess[u] == 0:
+                    break
+        if not pushed: relabel(u)
+        if excess[u] == 0: active.pop(0)
+        step += 1
+        print_state(step)
+
+    mf = sum(flow[s])
+    print(f"\nFlot maximal : {mf}")
+    return mf, flow
+
+
 #-------------------------------------------------------------------------------------------------------------------------------
 #FLOT MIN
 

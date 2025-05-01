@@ -57,7 +57,14 @@ def main():
 
         elif choix == 6:
             # Push–Relabel
-            max_flow, flow = push_relabel(reseau)
+            print("Souhaitez-vous afficher les itérations du flot à coût minimal ?")
+            print("1. Oui ")
+            print("2. Non ")
+            choixbis = input("Entrez votre choix (1 ou 2) : ")
+            if choixbis =="1":
+                max_flow, flow = Iteration_push_relabel(reseau)
+            else:
+                max_flow, flow = push_relabel(reseau)
             G = construire_graphe_flot(reseau)
             afficher_graphe_flot(G, flow_matrix=flow, mode='max')
 

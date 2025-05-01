@@ -3,6 +3,39 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from tabulate import tabulate
 from random import randint
+import time as t
+
+
+def choix_fichier():
+    reseau = None
+    randomness = None
+    # Boucle de choix d'un fichier existant ou random
+    while randomness is None:
+        randomness = input("Choix d'un fichier déjà existant [Y/N] : ")
+        if randomness == 'Y' or randomness == 'y':
+            # Lecture du fichier jusqu'à succès
+            while reseau is None:
+                filename = input("Entrez le nom du fichier de la table du réseau de flot (ex. : reseau.txt) : ")
+                try:
+                    reseau = lire_reseau_flot(filename)
+                    print(f"Fichier '{filename}' chargé avec succès.")
+                except Exception as e:
+                    print("Erreur lors de la lecture du fichier :", e)
+                    reseau = None
+        elif randomness == 'N' or randomness == 'n':
+            nbSommets = int(input("Choisissez le nombre de sommets : "))
+            choixCout = input("Associer des coûts à chaque arrête ? [Y/N] : ")
+            if choixCout not in ["Y", "y", "N", "n"]:
+                print("Entrez 'Y' ou 'N' !")
+                reseau = None
+            else:
+                reseau = creer_reseau_flot(nbSommets, choixCout)
+        else:
+            print("Entrez 'Y' ou 'N' !")
+            randomness = None
+    return reseau
+
+
 
 def lire_reseau_flot(filename):
     """
@@ -540,23 +573,43 @@ def Iteration_min_cost_flow(reseau, target):
 #COMPLEXITE
 
 
+#Generation de la matrice
+
 def generer_cout_aleatoire(n):
     cout = []
+    indices =[]
     for i in range(n):
         sommet = []
         for j in range(n):
-            sommet.append(randint(0, 10))
+            sommet.append(0)
+            if i!=j: indices.append((i, j))
         cout.append(sommet)
+
+    E = (n**2)//2
+    choix = np.random.choice(len(indices), size=E)
+    for k in choix:
+        i, j = indices[k]
+        cout[i][j] = randint(1, 100)
+
     return cout
 
 
 def generer_flot_aleatoire(n):
     flot = []
+    indices = []
     for i in range(n):
         sommet = []
         for j in range(n):
-            sommet.append(randint(0, 200))
+            sommet.append(0)
+            if i!=j: indices.append((i, j))
         flot.append(sommet)
+
+    E = (n**2)//2
+    choix = np.random.choice(len(indices), size=E)
+    for k in choix:
+        i, j = indices[k]
+        flot[i][j] = randint(1, 100)
+
     return flot
 
 
@@ -570,31 +623,118 @@ def creer_reseau_flot(n, choixCout):
         couts = None
     return {"n": n, "capacites": capacites, "couts": couts}
 
-def choix_fichier():
-    reseau = None
-    randomness = None
-    # Boucle de choix d'un fichier existant ou random
-    while randomness is None:
-        randomness = input("Choix d'un fichier déjà existant [Y/N] : ")
-        if randomness == 'Y' or randomness == 'y':
-            # Lecture du fichier jusqu'à succès
-            while reseau is None:
-                filename = input("Entrez le nom du fichier de la table du réseau de flot (ex. : reseau.txt) : ")
-                try:
-                    reseau = lire_reseau_flot(filename)
-                    print(f"Fichier '{filename}' chargé avec succès.")
-                except Exception as e:
-                    print("Erreur lors de la lecture du fichier :", e)
-                    reseau = None
-        elif randomness == 'N' or randomness == 'n':
-            nbSommets = int(input("Choisissez le nombre de sommets : "))
-            choixCout = input("Associer des coûts à chaque arrête ? [Y/N] : ")
-            if choixCout not in ["Y", "y", "N", "n"]:
-                print("Entrez 'Y' ou 'N' !")
-                reseau = None
-            else:
-                reseau = creer_reseau_flot(nbSommets, choixCout)
-        else:
-            print("Entrez 'Y' ou 'N' !")
-            randomness = None
-    return reseau
+#Calcul de temps
+
+def calcul_temps():
+    """
+    calcule le temps pour les n*100 iterations des algo ford_fulkerson, push_relabel et min avec n la taille des flots
+    calcule le temps pour n iterations des algo ford_fulkerson, push_relabel et min pour simplifier la lecture
+    :return: le temps de n*100 iteration des algo ford_fulkerson, push_relabel et min // temps_ff_800=[]; temps_pr_800=[];temps_min_800=[]
+    """
+
+    #Valeur à tester
+    n = [10, 20, 40, 60]
+    #temps pour 8 n
+    temps_ff =[]; temps_pr =[] ; temps_min =[]
+    #temps pour 800 valeurs
+    temps_ff_800=[]; temps_pr_800=[];temps_min_800=[]
+    for i in n:
+        ff = 0
+        pr = 0
+        min = 0
+        for j in range(100):
+            reseau = creer_reseau_flot(i, choixCout="y")
+
+            #ford
+            start = t.perf_counter()
+            flotmax, matrice = ford_fulkerson(reseau)
+            t_ff = t.perf_counter() - start
+            ff += t_ff
+            temps_ff_800.append((i, t_ff))
+
+            #push_relabel
+            start = t.perf_counter()
+            push_relabel(reseau)
+            t_pr = t.perf_counter() - start
+            pr += t_pr
+            temps_pr_800.append((i, t_pr))
+
+            #Flot_min
+            start = t.perf_counter()
+            flot = flotmax//2
+            min_cost_flow(reseau,flot)
+            t_min = t.perf_counter() - start
+            min += t_min
+            temps_min_800.append((i, t_min))
+
+        temps_ff.append(ff)
+        temps_pr.append(pr)
+        temps_min.append(min)
+
+    for index, i in enumerate(n):
+        print(f"\nN : {i}")
+        print(f"Ford-Fulkerson total : {temps_ff[index]:.6f} s")
+        print(f"Push-Relabel total   : {temps_pr[index]:.6f} s")
+        print(f"Min-Cost Flow total  : {temps_min[index]:.6f} s")
+
+    return temps_ff_800, temps_pr_800, temps_min_800
+
+
+def nuage_de_points(temps_ff, temps_pr, temps_min):
+    """
+    Fait un nuage de point des n*100 iterations des algo ford_fulkerson, push_relabel et min en fonction de n (taille des flots)
+    """
+    for nom, data, color in [
+        ("Ford-Fulkerson", temps_ff, 'red'),
+        ("Push-Relabel", temps_pr, 'blue'),
+        ("Min-Cost Flow", temps_min, 'green')
+    ]:
+        n_vals = [x[0] for x in data]
+        temps_vals = [x[1] for x in data]
+        plt.scatter(n_vals, temps_vals, label=nom, alpha=0.5, s=10, color=color)
+
+    plt.xlabel("Taille n")
+    plt.ylabel("Temps d'exécution (s)")
+    plt.title("Nuage de points des temps d'exécution")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+
+def tracer_complexite_pire_cas(temps_ff, temps_pr, temps_min):
+    """
+    Trace la compexité dans le pire des cas (les valeurs les plus hautes possibles) de chaque groupe de 100 iterations par rapport à la taille
+    """
+    def extraire_max_par_n(temps):
+        d = {}
+        for n, t in temps:
+            if n not in d:
+                d[n] = []
+            d[n].append(t)
+        return sorted((n, max(d[n])) for n in d)
+
+    ff_max = extraire_max_par_n(temps_ff)
+    pr_max = extraire_max_par_n(temps_pr)
+    min_max = extraire_max_par_n(temps_min)
+
+    for label, data, color in [
+        ("Ford-Fulkerson", ff_max, "red"),
+        ("Push-Relabel", pr_max, "blue"),
+        ("Min-Cost Flow", min_max, "green")
+    ]:
+        n_vals = []
+        max_vals = []
+        for x in data:
+            n_vals.append(x[0])
+            max_vals.append(x[1])
+        plt.plot(n_vals, max_vals, label=label, color=color, marker='o')
+
+    plt.xlabel("Taille n")
+    plt.ylabel("Temps maximum d'exécution (s)")
+    plt.title("Complexité dans le pire des cas")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+
+

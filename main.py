@@ -3,7 +3,7 @@ from functions import *
 def main():
     #reseau = choix_fichier()
     choix = 0
-    while choix != 8:
+    while choix != 9:
         print("\nMenu :")
         print("1. Choisir un autre fichier de réseau de flot")
         print("2. Afficher la matrice des capacités")
@@ -12,8 +12,9 @@ def main():
         print("5. Calculer le flot maximal (Ford–Fulkerson) et afficher")
         print("6. Calculer le flot maximal (Push–Relabel) et afficher")
         print("7. Calculer le flot à coût minimal et afficher")
-        print("8. Quitter")
-        saisie = input("Entrez votre choix (1-8) : ")
+        print("8. Etudier la complexité des algo")
+        print("9. Quitter")
+        saisie = input("Entrez votre choix (1-9) : ")
 
         if not saisie.isdigit():
             print("Veuillez entrer un nombre valide.")
@@ -89,8 +90,11 @@ def main():
             G = construire_graphe_flot(reseau)
             # mode='min' pour colorier en bleu
             afficher_graphe_flot(G, flow_matrix=flow, mode='min')
-
         elif choix == 8:
+            ff, pr, min = calcul_temps()
+            nuage_de_points(ff, pr, min)
+            tracer_complexite_pire_cas(ff, pr, min)
+        elif choix == 9:
             print("Merci d'avoir utilisé le programme.")
 
         else:

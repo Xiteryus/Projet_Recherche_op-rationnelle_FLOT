@@ -28,5 +28,5 @@ pip install numpy matplotlib networkx tabulate
 ## Lancer le programme
 Exécutez le fichier principal
 ````commandline
-main.py
+python main.py
 ````

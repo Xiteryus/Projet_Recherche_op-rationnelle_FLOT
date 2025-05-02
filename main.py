@@ -94,6 +94,7 @@ def main():
             ff, pr, min = calcul_temps()
             nuage_de_points(ff, pr, min)
             tracer_complexite_pire_cas(ff, pr, min)
+            comparaison_complexite_ff_pr(ff,pr)
         elif choix == 9:
             print("Merci d'avoir utilisé le programme.")
 

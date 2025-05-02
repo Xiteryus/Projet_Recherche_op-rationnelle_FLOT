@@ -601,7 +601,7 @@ def generer_flot_aleatoire(n):
         sommet = []
         for j in range(n):
             sommet.append(0)
-            if i!=j: indices.append((i, j))
+            if i!=j and i!=(n-1) and j!=0: indices.append((i, j))
         flot.append(sommet)
 
     E = (n**2)//2
@@ -633,7 +633,7 @@ def calcul_temps():
     """
 
     #Valeur à tester
-    n = [10, 20, 40, 60]
+    n = [10, 20]
     #temps pour 8 n
     temps_ff =[]; temps_pr =[] ; temps_min =[]
     #temps pour 800 valeurs
@@ -737,4 +737,30 @@ def tracer_complexite_pire_cas(temps_ff, temps_pr, temps_min):
     plt.show()
 
 
+def comparaison_complexite_ff_pr(temps_ff, temps_pr):
+    def extraire_max_par_n(temps):
+        d = {}
+        for n, t in temps:
+            if n not in d:
+                d[n] = []
+            d[n].append(t)
+        return sorted((n, max(d[n])) for n in d)
+
+    ff_max = extraire_max_par_n(temps_ff)
+    pr_max = extraire_max_par_n(temps_pr)
+    # ratio ff/pr pour n
+    ratio = []
+    for (n_ff, t_ff), (n_pr, t_pr) in zip(ff_max, pr_max):
+            ratio.append((n_ff, t_ff / t_pr))
+
+    n_vals = [x[0] for x in ratio]
+    ratio_vals = [x[1] for x in ratio]
+
+    plt.plot(n_vals, ratio_vals, label="θFF / θPR", color="purple", marker='o')
+    plt.xlabel("Taille n")
+    plt.ylabel("Rapport des temps max (θFF / θPR)")
+    plt.title("Comparaison des complexités dans le pire des cas")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 

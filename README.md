@@ -22,7 +22,7 @@ cd Recherche_Operationnelle_Flot_MAX_MIN
 ````
 ### 2️. Installer les dépendances
 ````commandline
-pip install numpy matplotlib networkx tabulate
+pip install numpy matplotlib networkx tabulate time
 ````
 
 ## Lancer le programme

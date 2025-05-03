@@ -44,9 +44,9 @@ def main():
         elif choix == 5:
             # Ford–Fulkerson
             #choix d'affichage des itérations
-            print("Souhaitez-vous afficher les itérations du Ford–Fulkerson ?")
-            print("1. Oui (visualiser les étapes)")
-            print("2. Non (juste le résultat final)")
+            print("Souhaitez-vous afficher les itérations de Ford–Fulkerson ?")
+            print("1. Oui ")
+            print("2. Non ")
             choixbis = input("Entrez votre choix (1 ou 2) : ")
             if choixbis == "1":
                 max_flow, flow = Iteration_ford_fulkerson(reseau)
@@ -58,7 +58,7 @@ def main():
 
         elif choix == 6:
             # Push–Relabel
-            print("Souhaitez-vous afficher les itérations du flot à coût minimal ?")
+            print("Souhaitez-vous afficher les itérations de Push–Relabel ?")
             print("1. Oui ")
             print("2. Non ")
             choixbis = input("Entrez votre choix (1 ou 2) : ")

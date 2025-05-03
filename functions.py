@@ -109,9 +109,11 @@ def afficher_tableau_flot(flux, capacites):
         for j in range(n):
             cap = capacites[i][j]
             f   = flux[i][j]
+
             if cap == 0:
                 row.append("0")
             else:
+                f  = max(0, f)
                 row.append(f"{f}/{cap}")
         table.append(row)
     print(tabulate(table, headers=labels, showindex=labels, tablefmt="grid"))
@@ -406,8 +408,7 @@ def Iteration_push_relabel(reseau):
         print(tabulate(table, headers=headers, tablefmt="grid"))
 
         print("\nFlot actuel :")
-        headers = [f"{i}" for i in range(n)]
-        print(tabulate(flow, headers=headers, showindex=True, tablefmt="grid"))
+        afficher_tableau_flot(flow,caps)
 
     active = [u for u in range(n) if u not in (s, t) and excess[u] > 0]
     step = 0
@@ -474,8 +475,8 @@ def min_cost_flow(reseau, target):
             residual[u][v]-=inc; residual[v][u]+=inc
             v=u
 
-    print(f"\nFlot obtenu = {total_flow}   Coût total = {total_cost}\n")
-    afficher_tableau_flot(flow, caps)
+    #print(f"\nFlot obtenu = {total_flow}   Coût total = {total_cost}\n")
+    #afficher_tableau_flot(flow, caps)
     return total_flow, total_cost, flow
 
 def Iteration_min_cost_flow(reseau, target):
@@ -633,7 +634,7 @@ def calcul_temps():
     """
 
     #Valeur à tester
-    n = [10, 20]
+    n = [10, 20, 40, 60, 80, 100, 150, 250, 500]
     #temps pour 8 n
     temps_ff =[]; temps_pr =[] ; temps_min =[]
     #temps pour 800 valeurs
